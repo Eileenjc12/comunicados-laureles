@@ -1,0 +1,1 @@
+const n=document.getElementById("admin-logout-btn");n&&n.addEventListener("click",async()=>{try{const t=await fetch("/api/admin/logout",{method:"POST"});(t.ok||t.status<500)&&(window.location.href="/admin/login")}catch{window.location.href="/admin/login"}});

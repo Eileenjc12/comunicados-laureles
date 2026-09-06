@@ -1,0 +1,240 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Nuevo Comunicado Oficial" activeSection="comunicados">
+  <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <nav class="flex items-center gap-2 text-xs text-slate-500 mb-4">
+      <a href="/admin" class="hover:text-emerald-600 transition">Comunicados</a>
+      <span>/</span>
+      <span class="text-slate-800 font-medium">Nuevo Comunicado</span>
+    </nav>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm">
+      <div class="border-b border-slate-200 pb-5 mb-6">
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+          Redactar Nuevo Comunicado Oficial
+        </h1>
+        <p class="mt-1 text-xs text-slate-500">
+          Publica avisos, convocatorias a asamblea, alertas urgentes y normas de convivencia vecinal.
+        </p>
+      </div>
+
+      <div id="form-error" class="hidden mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-xs text-red-700"></div>
+
+      <form id="create-announcement-form" class="space-y-6">
+        <!-- Title -->
+        <div>
+          <label for="title" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Título del Comunicado <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            required
+            minlength="5"
+            placeholder="Ej. Convocatoria a Asamblea General Ordinaria 2026"
+            class="block w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <p class="mt-1 text-[11px] text-slate-400">Mínimo 5 caracteres. Debe ser claro e institucional.</p>
+        </div>
+
+        <!-- Slug (optional) -->
+        <div>
+          <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Slug / Identificador URL <span class="text-slate-400 font-normal lowercase">(opcional)</span>
+          </label>
+          <input
+            type="text"
+            id="slug"
+            name="slug"
+            placeholder="asamblea-general-ordinaria-2026"
+            class="block w-full rounded-xl border border-slate-300 py-2.5 px-3.5 font-mono text-xs text-slate-700 placeholder-slate-400 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <p class="mt-1 text-[11px] text-slate-400">Si se deja en blanco, se generará automáticamente a partir del título.</p>
+        </div>
+
+        <!-- Category & Target Audience -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label for="category" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Categoría Temática <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="category"
+              name="category"
+              required
+              class="block w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="Convocatorias de Asamblea">Convocatorias de Asamblea</option>
+              <option value="Mantenimiento" selected>Mantenimiento</option>
+              <option value="Urgente / Alertas">Urgente / Alertas</option>
+              <option value="Normas de Convivencia">Normas de Convivencia</option>
+              <option value="Finanzas / Cuotas">Finanzas / Cuotas</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="audience" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Audiencia Destino <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="audience"
+              name="audience"
+              required
+              class="block w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="General" selected>General (Toda la Comunidad)</option>
+              <option value="Solo Propietarios">Solo Propietarios</option>
+              <option value="Solo Inquilinos">Solo Inquilinos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div>
+          <label for="summary" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Resumen Breve <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="summary"
+            name="summary"
+            rows="2"
+            required
+            placeholder="Extracto de 1 o 2 oraciones para la vista previa en el muro de comunicados..."
+            class="block w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          ></textarea>
+        </div>
+
+        <!-- Content (Markdown / Text) -->
+        <div>
+          <label for="content" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Contenido Completo del Comunicado <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="content"
+            name="content"
+            rows="10"
+            required
+            placeholder="Escriba aquí el cuerpo del comunicado oficial. Puede usar formato de texto o Markdown (# Título, • viñetas, **negrita**)..."
+            class="block w-full rounded-xl border border-slate-300 py-3 px-3.5 font-mono text-xs text-slate-900 placeholder-slate-400 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-relaxed"
+          ></textarea>
+        </div>
+
+        <!-- Deadline Date & Urgency/Pinned Flags -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 border-t border-slate-100 pt-5">
+          <div>
+            <label for="deadline_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Fecha Límite / Vencimiento
+            </label>
+            <input
+              type="date"
+              id="deadline_date"
+              name="deadline_date"
+              class="block w-full rounded-xl border border-slate-300 py-2 px-3 text-xs text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+            <p class="mt-1 text-[10px] text-slate-400">Opcional (para asambleas o cuotas)</p>
+          </div>
+
+          <div class="flex items-center gap-3 pt-4">
+            <input
+              type="checkbox"
+              id="is_urgent"
+              name="is_urgent"
+              class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+            />
+            <label for="is_urgent" class="text-xs font-semibold text-slate-700 cursor-pointer">
+              🚨 Marcar como Urgente
+            </label>
+          </div>
+
+          <div class="flex items-center gap-3 pt-4">
+            <input
+              type="checkbox"
+              id="pinned"
+              name="pinned"
+              class="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+            />
+            <label for="pinned" class="text-xs font-semibold text-slate-700 cursor-pointer">
+              📌 Fijar en la parte superior
+            </label>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
+          <a
+            href="/admin"
+            class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
+          >
+            Cancelar
+          </a>
+          <button
+            type="submit"
+            id="save-btn"
+            class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 transition focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            Publicar Comunicado
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('create-announcement-form') as HTMLFormElement;
+  const errorBox = document.getElementById('form-error');
+  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (errorBox) errorBox.classList.add('hidden');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+    }
+
+    const formData = new FormData(form);
+    const payload = {
+      title: formData.get('title'),
+      slug: formData.get('slug') || undefined,
+      category: formData.get('category'),
+      audience: formData.get('audience'),
+      summary: formData.get('summary'),
+      content: formData.get('content'),
+      deadline_date: formData.get('deadline_date') || null,
+      is_urgent: formData.get('is_urgent') === 'on' ? 1 : 0,
+      pinned: formData.get('pinned') === 'on' ? 1 : 0
+    };
+
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = '/admin';
+      } else {
+        if (errorBox) {
+          errorBox.textContent = data.error || 'Ocurrió un error al guardar el comunicado.';
+          errorBox.classList.remove('hidden');
+        }
+      }
+    } catch {
+      if (errorBox) {
+        errorBox.textContent = 'Error de conexión con el servidor.';
+        errorBox.classList.remove('hidden');
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Publicar Comunicado';
+      }
+    }
+  });
+</script>

@@ -1,0 +1,127 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EmergencyHeader from '../components/EmergencyHeader.astro';
+import AnnouncementCard from '../components/AnnouncementCard.astro';
+import AnnouncementFilters from '../components/AnnouncementFilters.astro';
+import { getDb } from '../lib/db.ts';
+
+export const prerender = false;
+
+// Query active announcements ordered by pinned DESC, is_urgent DESC, created_at DESC
+const db = getDb();
+const announcements = db.prepare(`
+  SELECT id, title, slug, summary, content, category, audience,
+         is_urgent, deadline_date, pinned, archived, visit_count,
+         created_at, updated_at
+  FROM announcements
+  WHERE archived = 0
+  ORDER BY pinned DESC, is_urgent DESC, created_at DESC
+`).all() as any[];
+
+const urgentCount = announcements.filter((a) => a.is_urgent === 1).length;
+const pinnedCount = announcements.filter((a) => a.pinned === 1).length;
+---
+
+<BaseLayout
+  title="Urbanización Los Laureles — Tablón Oficial de Comunicados y Quórum"
+  description="Canal digital institucional para residentes y propietarios de Urbanización Los Laureles. Comunicados oficiales, convocatorias de asamblea, quórum y alertas de mantenimiento."
+>
+  <!-- Prominent Emergency Header (R1) -->
+  <EmergencyHeader />
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-emerald-900 via-emerald-800 to-teal-900 text-white py-12 px-4 sm:px-6 lg:px-8 shadow-inner">
+    <div class="max-w-7xl mx-auto">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-700/60 border border-emerald-500/40 text-xs font-semibold text-emerald-200 mb-4 backdrop-blur">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          Padrón Residencial Oficial: 52 Inmuebles
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+          Tablón Oficial de Comunicados y Notificaciones
+        </h1>
+        <p class="text-base sm:text-lg text-emerald-100/90 leading-relaxed mb-6">
+          Bienvenido al portal institucional de <strong>Urbanización Los Laureles</strong>. Consulte aquí los comunicados oficiales de la Junta Directiva, convocatorias de asamblea, reportes de mantenimiento y registre la confirmación de lectura de su inmueble.
+        </p>
+
+        <!-- Stat Badges -->
+        <div class="flex flex-wrap items-center gap-3 text-xs">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 backdrop-blur">
+            <span class="font-bold text-white text-sm">{announcements.length}</span>
+            <span class="text-emerald-200">comunicados activos</span>
+          </div>
+          {urgentCount > 0 && (
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 backdrop-blur">
+              <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+              <span class="font-bold text-white text-sm">{urgentCount}</span>
+              <span>alertas urgentes</span>
+            </div>
+          )}
+          {pinnedCount > 0 && (
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-600/30 border border-emerald-400/30 text-emerald-200 backdrop-blur">
+              <span class="font-bold text-white text-sm">{pinnedCount}</span>
+              <span>fijados prioritarios</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Area: Filters and Announcements Feed -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <!-- Interactive Filters Component (R1) -->
+    <AnnouncementFilters />
+
+    <!-- Feed Section -->
+    <section aria-label="Lista de comunicados institucionales">
+      <div id="announcements-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {announcements.map((announcement) => (
+          <AnnouncementCard announcement={announcement} />
+        ))}
+      </div>
+
+      <!-- Empty State for Filters -->
+      <div id="filter-no-results" class="hidden text-center py-16 px-4 bg-white rounded-2xl border border-slate-200 shadow-sm mt-4">
+        <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-slate-800">No se encontraron comunicados</h3>
+        <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">
+          No hay comunicados que coincidan con los criterios de búsqueda o filtros seleccionados. Intente limpiando los filtros.
+        </p>
+      </div>
+    </section>
+
+    <!-- Community Directory Banner Shortcut (R3 Preview) -->
+    <section class="mt-16 rounded-3xl bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-8 shadow-md border border-emerald-700/50">
+      <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+        <div class="max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-700/80 text-xs font-semibold text-emerald-200 mb-3">
+            <span>Comercio Vecinal</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white mb-2">
+            Descubra el Mercado Laureles
+          </h2>
+          <p class="text-sm text-emerald-100 leading-relaxed">
+            Directorio exclusivo de emprendimientos vecinales: gastronomía, servicios técnicos, gasfitería, electricidad y belleza en nuestra comunidad con contacto directo por WhatsApp.
+          </p>
+        </div>
+        <div class="flex-shrink-0">
+          <a
+            href="/mercado"
+            class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-emerald-900 font-bold text-sm shadow-lg hover:bg-emerald-50 active:scale-95 transition-all"
+          >
+            Ver Catálogo Comercial
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

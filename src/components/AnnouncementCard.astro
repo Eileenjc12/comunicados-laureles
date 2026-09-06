@@ -1,0 +1,190 @@
+---
+interface Props {
+  announcement: {
+    id: number;
+    title: string;
+    slug: string;
+    summary: string;
+    content?: string;
+    category:
+      | 'Urgente / Alertas'
+      | 'Mantenimiento'
+      | 'Convocatorias de Asamblea'
+      | 'Normas de Convivencia'
+      | 'Finanzas / Cuotas';
+    audience: 'General' | 'Solo Propietarios' | 'Solo Inquilinos';
+    is_urgent: number;
+    deadline_date?: string | null;
+    pinned: number;
+    visit_count: number;
+    created_at: string;
+  };
+}
+
+const { announcement } = Astro.props;
+
+// Category Badge Color Palette
+const categoryStyles: Record<string, { badge: string; dot: string }> = {
+  'Urgente / Alertas': {
+    badge: 'bg-red-50 text-red-800 border-red-200 ring-red-600/10',
+    dot: 'bg-red-500',
+  },
+  'Mantenimiento': {
+    badge: 'bg-amber-50 text-amber-800 border-amber-200 ring-amber-600/10',
+    dot: 'bg-amber-500',
+  },
+  'Convocatorias de Asamblea': {
+    badge: 'bg-blue-50 text-blue-800 border-blue-200 ring-blue-600/10',
+    dot: 'bg-blue-500',
+  },
+  'Normas de Convivencia': {
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200 ring-emerald-600/10',
+    dot: 'bg-emerald-500',
+  },
+  'Finanzas / Cuotas': {
+    badge: 'bg-purple-50 text-purple-800 border-purple-200 ring-purple-600/10',
+    dot: 'bg-purple-500',
+  },
+};
+
+const currentCatStyle = categoryStyles[announcement.category] || {
+  badge: 'bg-slate-100 text-slate-800 border-slate-200 ring-slate-600/10',
+  dot: 'bg-slate-500',
+};
+
+// Audience Badge Palette
+const audienceStyles: Record<string, string> = {
+  'General': 'bg-slate-100 text-slate-700 border-slate-200',
+  'Solo Propietarios': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  'Solo Inquilinos': 'bg-teal-50 text-teal-700 border-teal-200',
+};
+
+const currentAudienceStyle = audienceStyles[announcement.audience] || 'bg-slate-100 text-slate-700 border-slate-200';
+
+// Format publication date
+const pubDate = new Date(announcement.created_at);
+const formattedDate = !isNaN(pubDate.getTime())
+  ? pubDate.toLocaleDateString('es-PE', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  : announcement.created_at;
+
+// Format deadline if present
+let formattedDeadline = null;
+if (announcement.deadline_date) {
+  const deadline = new Date(announcement.deadline_date);
+  formattedDeadline = !isNaN(deadline.getTime())
+    ? deadline.toLocaleDateString('es-PE', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : announcement.deadline_date;
+}
+
+const searchCorpus = `${announcement.title} ${announcement.summary} ${announcement.category}`.toLowerCase();
+---
+
+<article
+  class={`announcement-card relative flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm border transition-all duration-200 hover:shadow-md hover:border-emerald-300 group ${
+    announcement.pinned ? 'border-emerald-400/80 ring-1 ring-emerald-400/30' : 'border-slate-200'
+  }`}
+  data-category={announcement.category}
+  data-audience={announcement.audience}
+  data-search={searchCorpus}
+  data-date={announcement.created_at}
+  data-pinned={announcement.pinned ? '1' : '0'}
+>
+  <div>
+    <!-- Top Metadata Row: Pinned, Urgency, Category, Audience -->
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      {announcement.pinned === 1 && (
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+          </svg>
+          Fijado
+        </span>
+      )}
+
+      {announcement.is_urgent === 1 && (
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+          </span>
+          Urgente
+        </span>
+      )}
+
+      <span class={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${currentCatStyle.badge}`}>
+        <span class={`w-1.5 h-1.5 rounded-full ${currentCatStyle.dot}`}></span>
+        {announcement.category}
+      </span>
+
+      <span class={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${currentAudienceStyle}`}>
+        {announcement.audience}
+      </span>
+    </div>
+
+    <!-- Title & Summary -->
+    <h3 class="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors leading-snug mb-2">
+      <a href={`/comunicados/${announcement.slug}`} class="focus:outline-none focus:underline">
+        {announcement.title}
+      </a>
+    </h3>
+
+    <p class="text-sm text-slate-600 line-clamp-3 leading-relaxed mb-4">
+      {announcement.summary}
+    </p>
+
+    <!-- Deadline Banner if Set -->
+    {formattedDeadline && (
+      <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-50 border border-orange-200 text-xs font-medium text-orange-800">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>Fecha Límite / Asamblea: <strong>{formattedDeadline}</strong></span>
+      </div>
+    )}
+  </div>
+
+  <!-- Card Footer: Metrics & Action Link -->
+  <div class="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <div class="flex items-center gap-3">
+      <!-- Date -->
+      <span class="flex items-center gap-1" title="Fecha de publicación">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        {formattedDate}
+      </span>
+
+      <!-- Visit Count -->
+      <span class="flex items-center gap-1" title="Visitas registradas">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        {announcement.visit_count} vistas
+      </span>
+    </div>
+
+    <!-- Read CTA Button -->
+    <a
+      href={`/comunicados/${announcement.slug}`}
+      class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 group-hover:text-emerald-800 group-hover:translate-x-0.5 transition-all"
+    >
+      Leer y confirmar
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</article>

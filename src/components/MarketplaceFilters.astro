@@ -1,0 +1,207 @@
+---
+export interface Props {
+  selectedCategory?: string;
+  totalListings?: number;
+}
+
+const { selectedCategory = 'Todos', totalListings = 0 } = Astro.props;
+
+const categories = [
+  { label: 'Todos', value: 'Todos', icon: '🏪' },
+  { label: 'Gastronomía / Comida', value: 'Gastronomía / Comida', icon: '🍲' },
+  { label: 'Vestimenta / Ropa', value: 'Vestimenta / Ropa', icon: '👗' },
+  { label: 'Servicios Técnicos', value: 'Servicios Técnicos', icon: '💻' },
+  { label: 'Gasfitería / Electricidad', value: 'Gasfitería / Electricidad', icon: '🔧' },
+  { label: 'Belleza / Cuidado Personal', value: 'Belleza / Cuidado Personal', icon: '💇' },
+  { label: 'Otros', value: 'Otros', icon: '📦' },
+];
+---
+
+<div class="w-full space-y-4 mb-8">
+  <!-- Search Input Bar -->
+  <div class="relative max-w-xl mx-auto">
+    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+    <input
+      type="search"
+      id="marketplace-search-input"
+      placeholder="Buscar por negocio, servicio o vecino emprendedor..."
+      class="w-full pl-11 pr-4 py-3 bg-white border border-gray-300 rounded-2xl shadow-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-laureles-500 focus:border-laureles-500 text-sm transition-all"
+      aria-label="Buscar emprendimientos"
+    />
+  </div>
+
+  <!-- Category Filter Pills (Horizontal scroll on mobile) -->
+  <div class="flex items-center gap-2 overflow-x-auto pb-2 pt-1 px-1 no-scrollbar -mx-4 sm:mx-0 sm:justify-center">
+    {categories.map((cat) => {
+      const isActive = cat.value.toLowerCase() === selectedCategory.toLowerCase();
+      return (
+        <button
+          type="button"
+          data-category-filter={cat.value}
+          class={`marketplace-filter-btn whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all duration-150 border flex items-center gap-1.5 shadow-sm active:scale-95 ${
+            isActive
+              ? 'bg-laureles-700 text-white border-laureles-700 shadow-laureles-100 ring-2 ring-laureles-600/20'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+          }`}
+        >
+          <span>{cat.icon}</span>
+          <span>{cat.label}</span>
+        </button>
+      );
+    })}
+  </div>
+
+  <!-- Filter Feedback Status -->
+  <div class="text-center text-xs text-gray-500 font-medium" id="marketplace-filter-status">
+    Mostrando todos los emprendimientos vecinales verificados
+  </div>
+</div>
+
+<script>
+  function setupMarketplaceFilters() {
+    const searchInput = document.getElementById('marketplace-search-input') as HTMLInputElement | null;
+    const filterButtons = document.querySelectorAll('.marketplace-filter-btn');
+    const cards = document.querySelectorAll<HTMLElement>('.marketplace-card');
+    const noResultsMsg = document.getElementById('marketplace-no-results');
+    const statusText = document.getElementById('marketplace-filter-status');
+    const grid = document.getElementById('marketplace-grid');
+
+    let activeCategory = 'Todos';
+    let searchQuery = '';
+
+    // Check URL parameters on mount
+    const params = new URLSearchParams(window.location.search);
+    const catParam = params.get('categoria') || params.get('category');
+    if (catParam) {
+      activeCategory = catParam;
+      filterButtons.forEach((btn) => {
+        const val = btn.getAttribute('data-category-filter');
+        if (val && val.toLowerCase() === catParam.toLowerCase()) {
+          setButtonActive(btn as HTMLButtonElement);
+        }
+      });
+    }
+
+    function setButtonActive(activeBtn: HTMLButtonElement) {
+      filterButtons.forEach((btn) => {
+        btn.classList.remove(
+          'bg-laureles-700',
+          'text-white',
+          'border-laureles-700',
+          'ring-2',
+          'ring-laureles-600/20'
+        );
+        btn.classList.add('bg-white', 'text-gray-700', 'border-gray-200');
+      });
+      activeBtn.classList.add(
+        'bg-laureles-700',
+        'text-white',
+        'border-laureles-700',
+        'ring-2',
+        'ring-laureles-600/20'
+      );
+      activeBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-200');
+    }
+
+    function applyFilter() {
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const cardCategory = card.getAttribute('data-category') || '';
+        const cardTitle = card.getAttribute('data-title') || '';
+        const cardDescription = card.getAttribute('data-description') || '';
+        const cardEntrepreneur = card.getAttribute('data-entrepreneur') || '';
+
+        const matchesCategory =
+          activeCategory === 'Todos' ||
+          cardCategory.toLowerCase() === activeCategory.toLowerCase();
+
+        const cleanQuery = searchQuery.trim().toLowerCase();
+        const matchesSearch =
+          cleanQuery === '' ||
+          cardTitle.includes(cleanQuery) ||
+          cardDescription.includes(cleanQuery) ||
+          cardEntrepreneur.includes(cleanQuery) ||
+          cardCategory.toLowerCase().includes(cleanQuery);
+
+        if (matchesCategory && matchesSearch) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      if (noResultsMsg) {
+        noResultsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+
+      if (grid) {
+        grid.style.display = visibleCount === 0 ? 'none' : 'grid';
+      }
+
+      if (statusText) {
+        if (visibleCount === 0) {
+          statusText.textContent = 'No se encontraron emprendimientos con este criterio.';
+        } else if (activeCategory === 'Todos' && !searchQuery) {
+          statusText.textContent = `Mostrando ${visibleCount} emprendimiento(s) vecinales verificados.`;
+        } else {
+          statusText.textContent = `Mostrando ${visibleCount} resultado(s) para "${activeCategory !== 'Todos' ? activeCategory : searchQuery}".`;
+        }
+      }
+    }
+
+    // Filter pill click listeners
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const selected = btn.getAttribute('data-category-filter') || 'Todos';
+        activeCategory = selected;
+        setButtonActive(btn as HTMLButtonElement);
+
+        // Update URL query parameter without full reload
+        const url = new URL(window.location.href);
+        if (selected === 'Todos') {
+          url.searchParams.delete('categoria');
+          url.searchParams.delete('category');
+        } else {
+          url.searchParams.set('categoria', selected);
+        }
+        window.history.replaceState({}, '', url.toString());
+
+        applyFilter();
+      });
+    });
+
+    // Real-time search input listener
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = (e.target as HTMLInputElement).value;
+        applyFilter();
+      });
+    }
+
+    // Initial filter run
+    applyFilter();
+  }
+
+  // Run on page load and on client-side navigation
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMarketplaceFilters);
+  } else {
+    setupMarketplaceFilters();
+  }
+</script>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

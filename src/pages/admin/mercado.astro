@@ -1,0 +1,320 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb, type MarketplaceListing } from '../../lib/db.ts';
+
+const db = getDb();
+const listings = db.prepare('SELECT * FROM marketplace_listings ORDER BY created_at DESC').all() as MarketplaceListing[];
+
+const pendingListings = listings.filter(l => l.status === 'pending');
+const approvedListings = listings.filter(l => l.status === 'approved');
+const rejectedListings = listings.filter(l => l.status === 'rejected');
+---
+
+<AdminLayout title="Moderación Mercado Laureles" activeSection="mercado">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+          Moderación de Emprendimientos Vecinales
+        </h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Revisa y autoriza los negocios presentados por vecinos antes de su publicación en el Mercado Laureles.
+        </p>
+      </div>
+
+      <div>
+        <a
+          href="/mercado"
+          target="_blank"
+          class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
+        >
+          <span>Ver Mercado Público</span>
+          <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tabs Header -->
+    <div class="mb-6 border-b border-slate-200">
+      <div class="flex gap-4">
+        <button
+          type="button"
+          id="tab-btn-pending"
+          class="mercado-tab-btn border-b-2 border-emerald-600 pb-3 px-3 text-sm font-bold text-emerald-700 flex items-center gap-2 transition"
+        >
+          <span>Pendientes de Revisión</span>
+          <span class={`rounded-full px-2 py-0.5 text-xs font-bold ${pendingListings.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+            {pendingListings.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-btn-approved"
+          class="mercado-tab-btn border-b-2 border-transparent pb-3 px-3 text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-2 transition"
+        >
+          <span>Aprobados</span>
+          <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            {approvedListings.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-btn-rejected"
+          class="mercado-tab-btn border-b-2 border-transparent pb-3 px-3 text-sm font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-2 transition"
+        >
+          <span>Rechazados</span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+            {rejectedListings.length}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Panels Container -->
+    <div>
+      <!-- Panel 1: Pendientes -->
+      <div id="panel-pending" class="mercado-panel">
+        {pendingListings.length === 0 ? (
+          <div class="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500">
+            <svg class="mx-auto h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-base font-bold text-slate-800">¡Bandeja al día!</h3>
+            <p class="text-xs text-slate-400 mt-1">No hay postulaciones de emprendimientos pendientes de moderación.</p>
+          </div>
+        ) : (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {pendingListings.map((item) => (
+              <div class="flex flex-col justify-between overflow-hidden rounded-2xl border-2 border-amber-200 bg-white shadow-sm hover:shadow transition">
+                <div class="p-6">
+                  <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="rounded-md bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                      Pendiente
+                    </span>
+                    <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      {item.category}
+                    </span>
+                  </div>
+
+                  <h3 class="text-lg font-bold text-slate-900 line-clamp-1 mb-1" title={item.title}>
+                    {item.title}
+                  </h3>
+
+                  <p class="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  <div class="space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold text-slate-800">Vecino(a):</span>
+                      <span>{item.entrepreneur_name}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold text-slate-800">Inmueble:</span>
+                      <span class="rounded bg-slate-100 px-1.5 py-0.2 text-[11px] font-mono text-slate-700">{item.property_address}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold text-slate-800">Teléfono / WhatsApp:</span>
+                      <span class="font-mono text-slate-700">{item.phone}</span>
+                    </div>
+                    {item.schedule_hours && (
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-slate-800">Horario:</span>
+                        <span class="truncate">{item.schedule_hours}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <!-- 1-Click Action Bar -->
+                <div class="flex border-t border-slate-100 bg-slate-50 p-3 gap-2">
+                  <button
+                    type="button"
+                    class="action-approve-btn flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2 px-3 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 transition"
+                    data-id={item.id}
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Aprobar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="action-reject-btn flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white py-2 px-3 text-xs font-semibold text-red-600 shadow-sm hover:bg-red-50 transition"
+                    data-id={item.id}
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <!-- Panel 2: Aprobados -->
+      <div id="panel-approved" class="mercado-panel hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {approvedListings.map((item) => (
+            <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div class="p-6">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                  <span class="rounded-md bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                    Aprobado
+                  </span>
+                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                    {item.category}
+                  </span>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-900 line-clamp-1 mb-1">
+                  {item.title}
+                </h3>
+                <p class="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">
+                  {item.description}
+                </p>
+
+                <div class="space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-slate-800">Vecino:</span>
+                    <span>{item.entrepreneur_name} ({item.property_address})</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-slate-800">WhatsApp:</span>
+                    <a
+                      href={`https://wa.me/51${item.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      class="text-emerald-600 hover:underline font-mono"
+                    >
+                      {item.phone} ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex border-t border-slate-100 bg-slate-50 p-3">
+                <button
+                  type="button"
+                  class="action-reject-btn w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-1.5 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                  data-id={item.id}
+                >
+                  Desactivar / Rechazar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Panel 3: Rechazados -->
+      <div id="panel-rejected" class="mercado-panel hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rejectedListings.map((item) => (
+            <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/60 opacity-80">
+              <div class="p-6">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                  <span class="rounded-md bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-800">
+                    Rechazado
+                  </span>
+                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                    {item.category}
+                  </span>
+                </div>
+
+                <h3 class="text-base font-bold text-slate-800 line-clamp-1 mb-1">
+                  {item.title}
+                </h3>
+                <p class="text-xs text-slate-500 line-clamp-2 mb-3">
+                  {item.description}
+                </p>
+
+                <p class="text-xs text-slate-500">
+                  {item.entrepreneur_name} • {item.property_address}
+                </p>
+              </div>
+
+              <div class="flex border-t border-slate-200 bg-white p-3">
+                <button
+                  type="button"
+                  class="action-approve-btn w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition"
+                  data-id={item.id}
+                >
+                  Reaprobar Emprendimiento
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Tab switching
+  const tabPending = document.getElementById('tab-btn-pending');
+  const tabApproved = document.getElementById('tab-btn-approved');
+  const tabRejected = document.getElementById('tab-btn-rejected');
+
+  const panelPending = document.getElementById('panel-pending');
+  const panelApproved = document.getElementById('panel-approved');
+  const panelRejected = document.getElementById('panel-rejected');
+
+  function setTab(activeBtn: HTMLElement, activePanel: HTMLElement) {
+    [tabPending, tabApproved, tabRejected].forEach(btn => {
+      btn?.classList.remove('border-emerald-600', 'text-emerald-700', 'font-bold');
+      btn?.classList.add('border-transparent', 'text-slate-500', 'font-semibold');
+    });
+    [panelPending, panelApproved, panelRejected].forEach(p => p?.classList.add('hidden'));
+
+    activeBtn.classList.add('border-emerald-600', 'text-emerald-700', 'font-bold');
+    activeBtn.classList.remove('border-transparent', 'text-slate-500', 'font-semibold');
+    activePanel.classList.remove('hidden');
+  }
+
+  tabPending?.addEventListener('click', () => tabPending && panelPending && setTab(tabPending, panelPending));
+  tabApproved?.addEventListener('click', () => tabApproved && panelApproved && setTab(tabApproved, panelApproved));
+  tabRejected?.addEventListener('click', () => tabRejected && panelRejected && setTab(tabRejected, panelRejected));
+
+  // Moderation buttons
+  document.querySelectorAll('.action-approve-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      try {
+        const res = await fetch(`/api/admin/marketplace/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'approved' })
+        });
+        if (res.ok) window.location.reload();
+      } catch {
+        alert('Error al aprobar el emprendimiento');
+      }
+    });
+  });
+
+  document.querySelectorAll('.action-reject-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      try {
+        const res = await fetch(`/api/admin/marketplace/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'rejected' })
+        });
+        if (res.ok) window.location.reload();
+      } catch {
+        alert('Error al rechazar el emprendimiento');
+      }
+    });
+  });
+</script>
