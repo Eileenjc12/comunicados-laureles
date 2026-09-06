@@ -1,0 +1,338 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb, type Announcement } from '../../lib/db.ts';
+
+const db = getDb();
+
+// 1. Fetch metrics
+const totalCensus = (db.prepare('SELECT COUNT(*) as count FROM census_properties WHERE is_active = 1').get() as { count: number })?.count || 52;
+
+const pendingListings = (db.prepare("SELECT COUNT(*) as count FROM marketplace_listings WHERE status = 'pending'").get() as { count: number })?.count || 0;
+
+const totalReads = (db.prepare('SELECT COUNT(*) as count FROM read_confirmations').get() as { count: number })?.count || 0;
+
+// 2. Fetch announcements with confirmed counts
+interface AnnouncementWithStats extends Announcement {
+  confirmed_reads: number;
+}
+
+const announcements = db.prepare(`
+  SELECT 
+    a.*,
+    (SELECT COUNT(DISTINCT property_id) FROM read_confirmations WHERE announcement_id = a.id) as confirmed_reads
+  FROM announcements a
+  ORDER BY a.archived ASC, a.pinned DESC, a.created_at DESC
+`).all() as AnnouncementWithStats[];
+
+const activeAnnouncements = announcements.filter(a => a.archived === 0);
+---
+
+<AdminLayout title="Panel de Comunicados" activeSection="comunicados">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Top Action Bar & Title -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+          Gestión de Comunicados Oficiales
+        </h1>
+        <p class="mt-1 text-sm text-slate-500">
+          Control de convocatorias, alertas, seguimiento de lecturas por inmueble y reportes.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a
+          href="/admin/comunicados/nuevo"
+          class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Comunicado
+        </a>
+      </div>
+    </div>
+
+    <!-- Metrics Cards Grid -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <!-- Total Comunicados -->
+      <div class="overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Comunicados Activos</p>
+            <p class="text-2xl font-bold text-slate-900">{activeAnnouncements.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lecturas Totales Registradas -->
+      <div class="overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Confirmaciones Totales</p>
+            <p class="text-2xl font-bold text-slate-900">{totalReads}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Padrón Residencial -->
+      <div class="overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Padrón de Inmuebles</p>
+            <p class="text-2xl font-bold text-slate-900">{totalCensus} <span class="text-xs font-normal text-slate-400">(Mz. A-E)</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mercado Laureles Pendientes -->
+      <a href="/admin/mercado" class="overflow-hidden rounded-2xl bg-white p-5 shadow-sm border border-slate-200 hover:border-emerald-300 transition group">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100 group-hover:bg-amber-100 transition">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mercado por Revisar</p>
+            <div class="flex items-center gap-2">
+              <p class="text-2xl font-bold text-slate-900">{pendingListings}</p>
+              {pendingListings > 0 && (
+                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                  Pendientes
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Official Announcements Table -->
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-base font-bold text-slate-900">
+          Listado de Comunicados
+        </h2>
+        <span class="text-xs text-slate-500 font-medium">
+          {announcements.length} comunicados registrados
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+          <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th scope="col" class="py-3.5 px-6">Comunicado</th>
+              <th scope="col" class="py-3.5 px-4">Categoría / Audiencia</th>
+              <th scope="col" class="py-3.5 px-4 text-center">Lecturas / Quórum</th>
+              <th scope="col" class="py-3.5 px-4 text-center">Visitas</th>
+              <th scope="col" class="py-3.5 px-4 text-center">Estado</th>
+              <th scope="col" class="py-3.5 px-6 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {announcements.map((ann) => {
+              const coveragePct = Math.round(((ann.confirmed_reads || 0) / totalCensus) * 1000) / 10;
+              return (
+                <tr class={`hover:bg-slate-50/80 transition ${ann.archived ? 'opacity-60 bg-slate-50/50' : ''}`}>
+                  <!-- Title & Meta -->
+                  <td class="py-4 px-6 max-w-sm">
+                    <div class="flex items-center gap-2 mb-1">
+                      {ann.pinned === 1 && (
+                        <span class="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                          📌 Fijado
+                        </span>
+                      )}
+                      {ann.is_urgent === 1 && (
+                        <span class="inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700 border border-red-200">
+                          🚨 Urgente
+                        </span>
+                      )}
+                    </div>
+                    <a
+                      href={`/admin/lecturas/${ann.id}`}
+                      class="font-bold text-slate-900 hover:text-emerald-600 transition line-clamp-1 text-sm"
+                      title={ann.title}
+                    >
+                      {ann.title}
+                    </a>
+                    <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                      {ann.summary}
+                    </p>
+                  </td>
+
+                  <!-- Category & Audience -->
+                  <td class="py-4 px-4 whitespace-nowrap">
+                    <span class="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                      {ann.category}
+                    </span>
+                    <p class="text-[11px] text-slate-500 mt-1">
+                      👥 {ann.audience}
+                    </p>
+                  </td>
+
+                  <!-- Readings Coverage Button -->
+                  <td class="py-4 px-4 text-center whitespace-nowrap">
+                    <a
+                      href={`/admin/lecturas/${ann.id}`}
+                      class="inline-flex flex-col items-center justify-center rounded-xl bg-slate-50 hover:bg-emerald-50 px-3 py-1.5 border border-slate-200 hover:border-emerald-300 transition group"
+                    >
+                      <span class="text-xs font-bold text-slate-800 group-hover:text-emerald-700">
+                        {ann.confirmed_reads} / {totalCensus}
+                      </span>
+                      <span class="text-[10px] font-semibold text-emerald-600">
+                        {coveragePct}% lectura
+                      </span>
+                    </a>
+                  </td>
+
+                  <!-- Visit Count -->
+                  <td class="py-4 px-4 text-center whitespace-nowrap font-mono text-slate-600 text-xs">
+                    👁 {ann.visit_count}
+                  </td>
+
+                  <!-- State: Active / Archived -->
+                  <td class="py-4 px-4 text-center whitespace-nowrap">
+                    {ann.archived === 1 ? (
+                      <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                        Archivado
+                      </span>
+                    ) : (
+                      <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                        Activo
+                      </span>
+                    )}
+                  </td>
+
+                  <!-- Actions Dropdown / Buttons -->
+                  <td class="py-4 px-6 text-right whitespace-nowrap">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <!-- View Readings -->
+                      <a
+                        href={`/admin/lecturas/${ann.id}`}
+                        class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 transition"
+                        title="Ver Control de Lecturas"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </a>
+
+                      <!-- Edit -->
+                      <a
+                        href={`/admin/comunicados/${ann.id}/editar`}
+                        class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition"
+                        title="Editar Comunicado"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </a>
+
+                      <!-- Toggle Pin -->
+                      <button
+                        type="button"
+                        class="toggle-pin-btn rounded-lg p-1.5 text-slate-500 hover:bg-amber-50 hover:text-amber-600 transition"
+                        data-id={ann.id}
+                        title={ann.pinned ? 'Desfijar' : 'Fijar al inicio'}
+                      >
+                        <svg class={`h-4 w-4 ${ann.pinned ? 'text-amber-500 fill-amber-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                      </button>
+
+                      <!-- Toggle Archive -->
+                      <button
+                        type="button"
+                        class="toggle-archive-btn rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+                        data-id={ann.id}
+                        title={ann.archived ? 'Desarchivar' : 'Archivar'}
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                      </button>
+
+                      <!-- Delete -->
+                      <button
+                        type="button"
+                        class="delete-ann-btn rounded-lg p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+                        data-id={ann.id}
+                        data-title={ann.title}
+                        title="Eliminar Comunicado"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Pin button handler
+  document.querySelectorAll('.toggle-pin-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      try {
+        const res = await fetch(`/api/admin/announcements/${id}/pin`, { method: 'PATCH' });
+        if (res.ok) window.location.reload();
+      } catch (err) {
+        alert('Error al actualizar el estado fijado');
+      }
+    });
+  });
+
+  // Archive button handler
+  document.querySelectorAll('.toggle-archive-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      try {
+        const res = await fetch(`/api/admin/announcements/${id}/archive`, { method: 'PATCH' });
+        if (res.ok) window.location.reload();
+      } catch (err) {
+        alert('Error al archivar comunicado');
+      }
+    });
+  });
+
+  // Delete button handler
+  document.querySelectorAll('.delete-ann-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const title = btn.getAttribute('data-title') || 'este comunicado';
+      if (confirm(`¿Está seguro de eliminar el comunicado "${title}"? Se borrarán también sus registros de confirmación.`)) {
+        try {
+          const res = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' });
+          if (res.ok) window.location.reload();
+        } catch (err) {
+          alert('Error al eliminar el comunicado');
+        }
+      }
+    });
+  });
+</script>

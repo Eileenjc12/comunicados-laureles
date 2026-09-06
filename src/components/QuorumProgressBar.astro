@@ -1,0 +1,120 @@
+---
+interface Props {
+  confirmedCount: number;
+  totalCensus?: number;
+  percentage?: number;
+  tier?: string;
+  tierLabel?: string;
+}
+
+const {
+  confirmedCount = 0,
+  totalCensus = 52,
+  percentage: initialPercentage,
+  tier: initialTier,
+  tierLabel: initialTierLabel,
+} = Astro.props;
+
+const rawPercentage = totalCensus > 0 ? (confirmedCount / totalCensus) * 100.0 : 0;
+const percentage = initialPercentage !== undefined ? initialPercentage : Math.round(rawPercentage * 10) / 10;
+
+let tier = initialTier;
+let tierLabel = initialTierLabel;
+
+if (!tier || !tierLabel) {
+  if (percentage >= 70.0) {
+    tier = 'high';
+    tierLabel = 'Quórum reglamentario alcanzado';
+  } else if (percentage >= 35.0) {
+    tier = 'moderate';
+    tierLabel = 'En proceso de notificación';
+  } else {
+    tier = 'low';
+    tierLabel = 'Bajo quórum';
+  }
+}
+
+// Styling per tier
+const tierStyles: Record<string, { bar: string; badge: string; text: string }> = {
+  high: {
+    bar: 'bg-emerald-600',
+    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    text: 'text-emerald-700',
+  },
+  moderate: {
+    bar: 'bg-blue-600',
+    badge: 'bg-blue-100 text-blue-800 border-blue-300',
+    text: 'text-blue-700',
+  },
+  low: {
+    bar: 'bg-amber-500',
+    badge: 'bg-amber-100 text-amber-800 border-amber-300',
+    text: 'text-amber-700',
+  },
+};
+
+const currentTierStyle = tierStyles[tier] || tierStyles.low;
+const pendingCount = Math.max(0, totalCensus - confirmedCount);
+---
+
+<div id="quorum-progress-card" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 my-6">
+  <!-- Card Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+    <div>
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Seguimiento Comunitario</span>
+      <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Quórum de Lectura y Notificación
+      </h4>
+    </div>
+
+    <!-- Tier Badge -->
+    <div>
+      <span
+        id="quorum-tier-badge"
+        class={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${currentTierStyle.badge}`}
+      >
+        {tierLabel}
+      </span>
+    </div>
+  </div>
+
+  <!-- Dynamic Progress Bar -->
+  <div class="relative w-full bg-slate-100 rounded-full h-4 overflow-hidden mb-3 border border-slate-200">
+    <div
+      id="quorum-bar"
+      class={`h-full rounded-full transition-all duration-500 ease-out ${currentTierStyle.bar}`}
+      style={`width: ${Math.min(100, Math.max(0, percentage))}%`}
+    >
+    </div>
+  </div>
+
+  <!-- Dynamic Label & Metrics Grid -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-600">
+    <p id="quorum-summary-label" class="font-medium text-slate-800">
+      <strong id="quorum-confirmed-text" class="text-slate-900 font-bold">{confirmedCount}</strong> de {totalCensus} inmuebles han confirmado (<span id="quorum-percent-text" class="font-bold text-emerald-700">{percentage}%</span>)
+    </p>
+
+    <div class="flex items-center gap-4 text-[11px] text-slate-500">
+      <span class="flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        Confirmados: <strong id="quorum-confirmed-metric">{confirmedCount}</strong>
+      </span>
+      <span class="flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+        Pendientes: <strong id="quorum-pending-metric">{pendingCount}</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Statutory Quorum Note -->
+  <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+    <span>Estatuto Vecinal: Quórum formal 50% + 1 (27 inmuebles)</span>
+    <span>Total padrón: {totalCensus} casas</span>
+  </div>
+</div>

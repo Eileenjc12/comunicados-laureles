@@ -1,0 +1,378 @@
+---
+interface Props {
+  announcementId: number;
+}
+
+const { announcementId } = Astro.props;
+---
+
+<div class="bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-2xl p-6 sm:p-8 shadow-sm border border-emerald-200/80 my-8">
+  <div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-slate-900">Registro de Confirmación de Lectura</h3>
+      <p class="text-sm text-slate-600 mt-1">
+        Cada inmueble de la urbanización debe confirmar la recepción y toma de conocimiento de este comunicado oficial.
+      </p>
+    </div>
+
+    <!-- Alert Container for Dynamic Feedback -->
+    <div id="confirmation-feedback" class="hidden mb-6 rounded-xl p-4 text-sm transition-all">
+      <div class="flex items-start gap-3">
+        <div id="feedback-icon" class="flex-shrink-0 mt-0.5"></div>
+        <div class="flex-1">
+          <h4 id="feedback-title" class="font-bold text-sm"></h4>
+          <p id="feedback-message" class="mt-1 text-xs leading-relaxed"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Form -->
+    <form id="read-confirmation-form" class="space-y-4" data-announcement-id={announcementId}>
+      <!-- Step 1: Manzana & Lote Picker -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="select-manzana" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            1. Manzana <span class="text-rose-500">*</span>
+          </label>
+          <select
+            id="select-manzana"
+            name="manzana"
+            required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            <option value="">Seleccione Manzana...</option>
+            <option value="Mz. A">Mz. A (Calle Los Rosales)</option>
+            <option value="Mz. B">Mz. B (Calle Los Álamos)</option>
+            <option value="Mz. C">Mz. C (Jirón Las Acacias)</option>
+            <option value="Mz. D">Mz. D (Pasaje Los Cipreses)</option>
+            <option value="Mz. E">Mz. E (Av. Los Laureles)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="select-lote" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            2. Lote / Inmueble <span class="text-rose-500">*</span>
+          </label>
+          <select
+            id="select-lote"
+            name="propertyId"
+            required
+            disabled
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <option value="">Primero elija Manzana...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Address preview -->
+      <div id="property-address-box" class="hidden px-3.5 py-2 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-900">
+        <span class="font-semibold">Dirección registrada:</span> <span id="property-address-text"></span>
+      </div>
+
+      <!-- Step 2: Resident Name -->
+      <div>
+        <label for="input-resident-name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+          3. Nombre Completo del Residente <span class="text-rose-500">*</span>
+        </label>
+        <input
+          id="input-resident-name"
+          type="text"
+          name="residentName"
+          required
+          minlength="3"
+          maxlength="150"
+          placeholder="Ej. Carlos Alberto Mendoza Silva"
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400"
+        />
+        <span class="block text-[11px] text-slate-500 mt-1">Mínimo 3 caracteres. Ingrese nombres y apellidos de quien confirma.</span>
+      </div>
+
+      <!-- Step 3: Role Picker -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+          4. Condición en el Inmueble <span class="text-rose-500">*</span>
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="relative flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 cursor-pointer transition-colors has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/30">
+            <input
+              type="radio"
+              name="role"
+              value="Propietario"
+              checked
+              class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+            />
+            <div>
+              <span class="block text-sm font-semibold text-slate-900">Propietario</span>
+              <span class="block text-[11px] text-slate-500">Titular del predio</span>
+            </div>
+          </label>
+
+          <label class="relative flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 cursor-pointer transition-colors has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/30">
+            <input
+              type="radio"
+              name="role"
+              value="Inquilino"
+              class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+            />
+            <div>
+              <span class="block text-sm font-semibold text-slate-900">Inquilino</span>
+              <span class="block text-[11px] text-slate-500">Arrendatario residente</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Legal Declaration -->
+      <div class="pt-2">
+        <p class="text-[11px] text-slate-500 leading-relaxed italic">
+          * Al presionar el botón inferior, declara bajo responsabilidad comunitaria ser habitante o propietario del inmueble indicado y dar por notificado el presente comunicado.
+        </p>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-2">
+        <button
+          id="btn-submit-confirmation"
+          type="submit"
+          class="w-full inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold text-sm shadow-md shadow-emerald-700/20 hover:scale-[1.01] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg id="btn-spinner" class="hidden animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="btn-text">Confirmar Lectura de Inmueble</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  interface CensusItem {
+    id: number;
+    manzana: string;
+    lote: string;
+    address: string;
+    owner_name: string;
+    block?: string;
+    lot?: string;
+    street?: string;
+    owner?: string;
+  }
+
+  let censusData: CensusItem[] = [];
+
+  async function initConfirmationBox() {
+    const form = document.getElementById('read-confirmation-form') as HTMLFormElement | null;
+    if (!form) return;
+
+    const announcementId = form.getAttribute('data-announcement-id');
+    const manzanaSelect = document.getElementById('select-manzana') as HTMLSelectElement | null;
+    const loteSelect = document.getElementById('select-lote') as HTMLSelectElement | null;
+    const nameInput = document.getElementById('input-resident-name') as HTMLInputElement | null;
+    const addressBox = document.getElementById('property-address-box');
+    const addressText = document.getElementById('property-address-text');
+    const feedbackBox = document.getElementById('confirmation-feedback');
+    const feedbackTitle = document.getElementById('feedback-title');
+    const feedbackMsg = document.getElementById('feedback-message');
+    const feedbackIcon = document.getElementById('feedback-icon');
+    const submitBtn = document.getElementById('btn-submit-confirmation') as HTMLButtonElement | null;
+    const btnSpinner = document.getElementById('btn-spinner');
+    const btnText = document.getElementById('btn-text');
+
+    // Fetch Census Data
+    try {
+      const res = await fetch('/api/census/properties');
+      if (res.ok) {
+        const json = await res.json();
+        censusData = json.properties || [];
+      }
+    } catch (e) {
+      console.error('Error cargando censo:', e);
+    }
+
+    // On Manzana Change, filter Lotes
+    manzanaSelect?.addEventListener('change', () => {
+      const selectedMz = manzanaSelect.value;
+      if (!loteSelect) return;
+
+      if (!selectedMz) {
+        loteSelect.innerHTML = '<option value="">Primero elija Manzana...</option>';
+        loteSelect.disabled = true;
+        loteSelect.classList.add('bg-slate-50');
+        if (addressBox) addressBox.classList.add('hidden');
+        return;
+      }
+
+      const filtered = censusData.filter(
+        (p) => (p.manzana || p.block) === selectedMz
+      );
+
+      let optionsHtml = '<option value="">Seleccione Lote...</option>';
+      filtered.forEach((p) => {
+        const lotLabel = p.lote || p.lot;
+        optionsHtml += `<option value="${p.id}">${lotLabel} — ${p.address || p.street}</option>`;
+      });
+
+      loteSelect.innerHTML = optionsHtml;
+      loteSelect.disabled = false;
+      loteSelect.classList.remove('bg-slate-50');
+      loteSelect.classList.add('bg-white');
+    });
+
+    // On Lote Change, show address preview and pre-fill owner name as hint
+    loteSelect?.addEventListener('change', () => {
+      const propId = Number(loteSelect.value);
+      const prop = censusData.find((p) => p.id === propId);
+
+      if (prop && addressBox && addressText) {
+        addressText.textContent = `${prop.manzana || prop.block}, ${prop.lote || prop.lot} (${prop.address || prop.street})`;
+        addressBox.classList.remove('hidden');
+
+        // Suggest owner name if empty
+        if (nameInput && !nameInput.value.trim() && (prop.owner_name || prop.owner)) {
+          nameInput.placeholder = `Ej. ${prop.owner_name || prop.owner}`;
+        }
+      } else if (addressBox) {
+        addressBox.classList.add('hidden');
+      }
+    });
+
+    // Handle Form Submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const propertyId = Number(loteSelect?.value);
+      const residentName = (nameInput?.value || '').trim();
+      const roleRadio = form.querySelector('input[name="role"]:checked') as HTMLInputElement | null;
+      const role = roleRadio?.value || 'Propietario';
+
+      if (!propertyId || !residentName) {
+        showFeedback(
+          'error',
+          'Campos incompletos',
+          'Por favor seleccione el inmueble y complete el nombre del residente.'
+        );
+        return;
+      }
+
+      // UI Loading State
+      if (submitBtn) submitBtn.disabled = true;
+      if (btnSpinner) btnSpinner.classList.remove('hidden');
+      if (btnText) btnText.textContent = 'Enviando confirmación...';
+
+      try {
+        const res = await fetch(`/api/announcements/${announcementId}/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ propertyId, residentName, role }),
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201) {
+          // Success
+          showFeedback(
+            'success',
+            '¡Lectura confirmada exitosamente!',
+            `Su confirmación para el inmueble ha sido registrada. Quórum actualizado: ${data.stats.confirmedCount} de ${data.stats.totalProperties} inmuebles (${data.stats.percentage}%).`
+          );
+
+          // Disable form to prevent accidental resubmission
+          form.classList.add('opacity-60', 'pointer-events-none');
+          if (btnText) btnText.textContent = '✓ Lectura Registrada';
+
+          // Dynamically update QuorumProgressBar if on page
+          updateQuorumBar(data.stats);
+        } else if (res.status === 409) {
+          // Duplicate constraint error
+          showFeedback(
+            'duplicate',
+            'Inmueble ya confirmado',
+            data.message || 'Este inmueble ya registró su confirmación para este comunicado.'
+          );
+          if (btnText) btnText.textContent = 'Confirmar Lectura de Inmueble';
+          if (submitBtn) submitBtn.disabled = false;
+        } else {
+          // Validation or other error
+          const errMsg = data.errors ? data.errors.join(' ') : (data.error || 'Ocurrió un error al registrar la confirmación.');
+          showFeedback('error', 'Error en el registro', errMsg);
+          if (btnText) btnText.textContent = 'Confirmar Lectura de Inmueble';
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      } catch (err) {
+        showFeedback(
+          'error',
+          'Error de conexión',
+          'No se pudo comunicar con el servidor. Verifique su conexión a internet.'
+        );
+        if (btnText) btnText.textContent = 'Confirmar Lectura de Inmueble';
+        if (submitBtn) submitBtn.disabled = false;
+      } finally {
+        if (btnSpinner) btnSpinner.classList.add('hidden');
+      }
+    });
+
+    function showFeedback(type: 'success' | 'duplicate' | 'error', title: string, message: string) {
+      if (!feedbackBox || !feedbackTitle || !feedbackMsg || !feedbackIcon) return;
+
+      feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-300', 'text-emerald-900', 'bg-amber-100', 'border-amber-300', 'text-amber-900', 'bg-rose-100', 'border-rose-300', 'text-rose-900');
+
+      if (type === 'success') {
+        feedbackBox.classList.add('bg-emerald-100', 'border', 'border-emerald-300', 'text-emerald-900');
+        feedbackIcon.innerHTML = `<svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+      } else if (type === 'duplicate') {
+        feedbackBox.classList.add('bg-amber-100', 'border', 'border-amber-300', 'text-amber-900');
+        feedbackIcon.innerHTML = `<svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+      } else {
+        feedbackBox.classList.add('bg-rose-100', 'border', 'border-rose-300', 'text-rose-900');
+        feedbackIcon.innerHTML = `<svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+      }
+
+      feedbackTitle.textContent = title;
+      feedbackMsg.textContent = message;
+      feedbackBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function updateQuorumBar(stats: { confirmedCount: number; totalProperties: number; percentage: number }) {
+      const bar = document.getElementById('quorum-bar');
+      const confirmedText = document.getElementById('quorum-confirmed-text');
+      const percentText = document.getElementById('quorum-percent-text');
+      const confirmedMetric = document.getElementById('quorum-confirmed-metric');
+      const pendingMetric = document.getElementById('quorum-pending-metric');
+      const tierBadge = document.getElementById('quorum-tier-badge');
+
+      if (bar) bar.style.width = `${Math.min(100, Math.max(0, stats.percentage))}%`;
+      if (confirmedText) confirmedText.textContent = String(stats.confirmedCount);
+      if (percentText) percentText.textContent = `${stats.percentage}%`;
+      if (confirmedMetric) confirmedMetric.textContent = String(stats.confirmedCount);
+      if (pendingMetric) pendingMetric.textContent = String(Math.max(0, stats.totalProperties - stats.confirmedCount));
+
+      if (tierBadge) {
+        if (stats.percentage >= 70) {
+          tierBadge.textContent = 'Quórum reglamentario alcanzado';
+          tierBadge.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border bg-emerald-100 text-emerald-800 border-emerald-300';
+          if (bar) bar.className = 'h-full rounded-full transition-all duration-500 ease-out bg-emerald-600';
+        } else if (stats.percentage >= 35) {
+          tierBadge.textContent = 'En proceso de notificación';
+          tierBadge.className = 'inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border bg-blue-100 text-blue-800 border-blue-300';
+          if (bar) bar.className = 'h-full rounded-full transition-all duration-500 ease-out bg-blue-600';
+        }
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initConfirmationBox);
+  } else {
+    initConfirmationBox();
+  }
+</script>

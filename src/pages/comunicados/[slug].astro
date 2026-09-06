@@ -1,0 +1,276 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import QuorumProgressBar from '../../components/QuorumProgressBar.astro';
+import ReadConfirmationBox from '../../components/ReadConfirmationBox.astro';
+import EmergencyHeader from '../../components/EmergencyHeader.astro';
+import { getDb } from '../../lib/db.ts';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/');
+}
+
+const db = getDb();
+
+// Fetch announcement by slug
+const announcement = db
+  .prepare('SELECT * FROM announcements WHERE slug = ?')
+  .get(slug) as any;
+
+if (!announcement) {
+  return Astro.redirect('/');
+}
+
+// Atomically increment visit counter on SSR render
+db.prepare('UPDATE announcements SET visit_count = visit_count + 1 WHERE id = ?').run(announcement.id);
+announcement.visit_count = (announcement.visit_count || 0) + 1;
+
+// Fetch confirmed reads count for this announcement
+const readsCountRow = db
+  .prepare('SELECT COUNT(*) as count FROM read_confirmations WHERE announcement_id = ?')
+  .get(announcement.id) as { count: number };
+const confirmedCount = readsCountRow ? readsCountRow.count : 0;
+
+// Fetch total census properties count
+const censusCountRow = db
+  .prepare('SELECT COUNT(*) as count FROM census_properties WHERE is_active = 1')
+  .get() as { count: number };
+const totalCensus = censusCountRow ? censusCountRow.count : 52;
+
+const rawPercentage = totalCensus > 0 ? (confirmedCount / totalCensus) * 100.0 : 0;
+const percentage = Math.round(rawPercentage * 10) / 10;
+
+let tier = 'low';
+let tierLabel = 'Bajo quórum';
+
+if (percentage >= 70.0) {
+  tier = 'high';
+  tierLabel = 'Quórum reglamentario alcanzado';
+} else if (percentage >= 35.0) {
+  tier = 'moderate';
+  tierLabel = 'En proceso de notificación';
+}
+
+// Format dates
+const pubDate = new Date(announcement.created_at);
+const formattedPubDate = !isNaN(pubDate.getTime())
+  ? pubDate.toLocaleDateString('es-PE', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  : announcement.created_at;
+
+let formattedDeadline = null;
+if (announcement.deadline_date) {
+  const dDate = new Date(announcement.deadline_date);
+  formattedDeadline = !isNaN(dDate.getTime())
+    ? dDate.toLocaleDateString('es-PE', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : announcement.deadline_date;
+}
+
+// Category Badge Color Palette
+const categoryStyles: Record<string, string> = {
+  'Urgente / Alertas': 'bg-red-100 text-red-800 border-red-200',
+  'Mantenimiento': 'bg-amber-100 text-amber-800 border-amber-200',
+  'Convocatorias de Asamblea': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Normas de Convivencia': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'Finanzas / Cuotas': 'bg-purple-100 text-purple-800 border-purple-200',
+};
+
+const catBadgeClass = categoryStyles[announcement.category] || 'bg-slate-100 text-slate-800 border-slate-200';
+
+// Simple Markdown to HTML formatter for content
+function formatContent(content: string): string {
+  if (!content) return '';
+  
+  // Replace headers
+  let html = content
+    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-slate-900 mt-6 mb-2">$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-slate-900 mt-8 mb-3">$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-slate-900 mt-4 mb-4">$1</h1>');
+
+  // Replace blockquotes
+  html = html.replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-emerald-500 bg-emerald-50/50 p-4 rounded-r-xl my-4 text-emerald-900 text-sm italic">$1</blockquote>');
+
+  // Replace bullet lists
+  html = html.replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc text-slate-700 my-1">$1</li>');
+
+  // Replace bold and italics
+  html = html
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+
+  // Wrap paragraphs
+  const paragraphs = html.split(/\n\n+/);
+  return paragraphs
+    .map((p) => {
+      p = p.trim();
+      if (!p) return '';
+      if (p.startsWith('<h') || p.startsWith('<blockquote') || p.startsWith('<li')) {
+        return p;
+      }
+      return `<p class="text-slate-700 leading-relaxed my-3">${p}</p>`;
+    })
+    .join('');
+}
+
+const renderedContent = formatContent(announcement.content);
+
+// WhatsApp Share URL
+const pageUrl = Astro.url.href;
+const shareText = `📢 *URBANIZACIÓN LOS LAURELES — COMUNICADO OFICIAL*\n*Asunto:* ${announcement.title}\n\nPor favor revise y confirme la lectura de su inmueble aquí:\n${pageUrl}`;
+const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+---
+
+<BaseLayout
+  title={`${announcement.title} — Urbanización Los Laureles`}
+  description={announcement.summary}
+>
+  <EmergencyHeader />
+
+  <!-- Breadcrumb Navigation -->
+  <div class="bg-white border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <nav class="flex items-center gap-2 text-xs font-medium text-slate-500">
+        <a href="/" class="hover:text-emerald-700 transition-colors">Inicio</a>
+        <span>/</span>
+        <a href="/" class="hover:text-emerald-700 transition-colors">Comunicados</a>
+        <span>/</span>
+        <span class="text-slate-900 truncate max-w-xs">{announcement.title}</span>
+      </nav>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <!-- Announcement Header Article -->
+    <article class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-slate-200">
+      <!-- Badges Row -->
+      <div class="flex flex-wrap items-center gap-2.5 mb-4">
+        {announcement.pinned === 1 && (
+          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+            </svg>
+            Fijado Prioritario
+          </span>
+        )}
+
+        {announcement.is_urgent === 1 && (
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+            </span>
+            Urgente / Alerta
+          </span>
+        )}
+
+        <span class={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${catBadgeClass}`}>
+          {announcement.category}
+        </span>
+
+        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+          Dirigido a: <strong class="ml-1 font-semibold">{announcement.audience}</strong>
+        </span>
+      </div>
+
+      <!-- Main Title -->
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight mb-4">
+        {announcement.title}
+      </h1>
+
+      <!-- Metadata Line -->
+      <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 pb-6 border-b border-slate-100">
+        <span class="flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Publicado el {formattedPubDate}
+        </span>
+
+        <span class="flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          {announcement.visit_count} visitas
+        </span>
+
+        <!-- WhatsApp Share Button -->
+        <a
+          href={whatsappShareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold transition-colors"
+          title="Compartir comunicado por WhatsApp vecinal"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          </svg>
+          Compartir en grupo vecinal
+        </a>
+      </div>
+
+      <!-- Deadline Notice Banner if Applicable -->
+      {formattedDeadline && (
+        <div class="my-6 rounded-xl bg-orange-50 border border-orange-200 p-4 flex items-center gap-3 text-orange-950">
+          <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0 text-orange-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div>
+            <span class="block text-xs font-bold uppercase tracking-wider text-orange-800">Fecha Límite / Convocatoria</span>
+            <span class="block text-sm font-semibold">{formattedDeadline}</span>
+          </div>
+        </div>
+      )}
+
+      <!-- Summary Lead Callout -->
+      <div class="my-6 p-4 rounded-xl bg-slate-50 border-l-4 border-emerald-600 text-slate-800 font-medium text-base leading-relaxed">
+        {announcement.summary}
+      </div>
+
+      <!-- Rich Formatted Body Content -->
+      <div class="prose max-w-none text-slate-700 text-base leading-relaxed" set:html={renderedContent} />
+    </article>
+
+    <!-- Milestone 3: Quorum Progress Bar Component (R2) -->
+    <QuorumProgressBar
+      confirmedCount={confirmedCount}
+      totalCensus={totalCensus}
+      percentage={percentage}
+      tier={tier}
+      tierLabel={tierLabel}
+    />
+
+    <!-- Milestone 3: Read Confirmation Box Component (R2) -->
+    <ReadConfirmationBox announcementId={announcement.id} />
+
+    <!-- Navigation Back Link -->
+    <div class="mt-8 text-center">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-sm transition-all"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Volver al tablón de comunicados
+      </a>
+    </div>
+  </div>
+</BaseLayout>

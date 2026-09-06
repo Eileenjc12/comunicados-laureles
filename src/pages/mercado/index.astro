@@ -1,0 +1,171 @@
+---
+import { getDb } from '../../lib/db.ts';
+import MarketplaceCard from '../../components/MarketplaceCard.astro';
+import MarketplaceFilters from '../../components/MarketplaceFilters.astro';
+
+// SSR: Query approved marketplace listings
+const db = getDb();
+const url = Astro.url;
+const categoryFilter = url.searchParams.get('categoria') || url.searchParams.get('category') || 'Todos';
+
+let sql = `
+  SELECT * FROM marketplace_listings
+  WHERE status = 'approved'
+`;
+const params: any[] = [];
+
+if (categoryFilter && categoryFilter !== 'Todos') {
+  sql += ' AND LOWER(category) = LOWER(?)';
+  params.push(categoryFilter);
+}
+
+sql += ' ORDER BY id ASC';
+
+const approvedListings = db.prepare(sql).all(...params) as any[];
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mercado Laureles: Directorio Comercial Vecinal | Urbanización Los Laureles</title>
+    <meta
+      name="description"
+      content="Directorio comercial vecinal de la Urbanización Los Laureles. Conoce y contrata los productos y servicios de tus vecinos con contacto directo por WhatsApp."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col font-sans">
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-laureles-700 text-white flex items-center justify-center font-black text-lg shadow-sm group-hover:bg-laureles-800 transition-colors">
+            🌿
+          </div>
+          <div>
+            <span class="text-xs uppercase tracking-wider text-laureles-800 font-bold block leading-tight">Urbanización</span>
+            <span class="text-lg font-extrabold text-gray-900 leading-tight">Los Laureles</span>
+          </div>
+        </a>
+
+        <!-- Desktop & Mobile Nav Links -->
+        <nav class="flex items-center gap-2 sm:gap-4">
+          <a
+            href="/"
+            class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-laureles-700 hover:bg-gray-100 rounded-lg transition-colors hidden sm:inline-block"
+          >
+            Comunicados
+          </a>
+          <a
+            href="/mercado"
+            class="px-3 py-1.5 text-sm font-bold text-laureles-800 bg-laureles-50 rounded-lg transition-colors"
+          >
+            Mercado Laureles
+          </a>
+          <a
+            href="/mercado/postular"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-laureles-700 hover:bg-laureles-800 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-95"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>Postular Negocio</span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <!-- Hero Banner Section -->
+      <section class="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-laureles-100 text-laureles-800 text-xs font-bold mb-4">
+          <span>🏪</span>
+          <span>Economía y Colaboración Vecinal</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight mb-4">
+          Mercado Laureles: Directorio Comercial Vecinal
+        </h1>
+        <p class="text-base sm:text-lg text-gray-600 leading-relaxed mb-6">
+          Apoya y contrata el talento de nuestros propios vecinos. Encuentra comida casera, servicios técnicos, gasfitería, ropa, estética y más, con contacto directo y confiable por WhatsApp.
+        </p>
+
+        <!-- Action CTA buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/mercado/postular"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-laureles-700 hover:bg-laureles-800 text-white font-semibold rounded-2xl shadow-sm hover:shadow transition-all active:scale-98 text-sm sm:text-base"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Postular mi Emprendimiento</span>
+          </a>
+          <a
+            href="#directorio"
+            class="inline-flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold rounded-2xl shadow-2xs transition-all text-sm sm:text-base"
+          >
+            <span>Explorar Directorio</span>
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- Search and Filter Controls -->
+      <section id="directorio" class="scroll-mt-20">
+        <MarketplaceFilters selectedCategory={categoryFilter} totalListings={approvedListings.length} />
+
+        <!-- Listings Grid -->
+        <div
+          id="marketplace-grid"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {approvedListings.map((listing) => (
+            <MarketplaceCard listing={listing} />
+          ))}
+        </div>
+
+        <!-- No Results Empty State Message -->
+        <div
+          id="marketplace-no-results"
+          class={`text-center py-16 px-4 bg-white rounded-3xl border border-dashed border-gray-300 max-w-lg mx-auto ${approvedListings.length === 0 ? 'block' : 'hidden'}`}
+        >
+          <div class="w-16 h-16 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+            🔍
+          </div>
+          <h2 class="text-lg font-bold text-gray-900 mb-2">No se encontraron emprendimientos</h2>
+          <p class="text-sm text-gray-500 mb-6">
+            No hay publicaciones aprobadas en esta categoría o con este término de búsqueda. ¿Ofreces este producto o servicio en Los Laureles?
+          </p>
+          <a
+            href="/mercado/postular"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-laureles-700 hover:bg-laureles-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
+          >
+            <span>Postular mi Emprendimiento</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16 py-8 text-center text-xs text-gray-500">
+      <div class="max-w-6xl mx-auto px-4 space-y-2">
+        <p class="font-semibold text-gray-700">Urbanización Los Laureles — Portal Residencial Oficial</p>
+        <p>Directorio comercial vecinal supervisado por la Junta Directiva y Administración.</p>
+        <div class="pt-2 flex items-center justify-center gap-4 text-gray-400">
+          <a href="/" class="hover:text-gray-600">Comunicados</a>
+          <span>•</span>
+          <a href="/mercado" class="hover:text-gray-600">Mercado Laureles</a>
+          <span>•</span>
+          <a href="/mercado/postular" class="hover:text-gray-600">Postulación Vecinal</a>
+          <span>•</span>
+          <a href="/admin" class="hover:text-gray-600">Panel Administrativo</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

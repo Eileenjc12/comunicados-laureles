@@ -1,0 +1,162 @@
+---
+interface Props {
+  title?: string;
+  activeSection?: 'comunicados' | 'mercado';
+}
+
+const { title = 'Panel de Administración', activeSection = 'comunicados' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" class="h-full bg-slate-50 text-slate-800 antialiased">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — Urbanización Los Laureles</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="flex min-h-full flex-col font-sans">
+    <!-- Admin Topbar -->
+    <header class="sticky top-0 z-40 border-b border-slate-200 bg-slate-900 text-white shadow-md">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <!-- Brand & Urbanization Badge -->
+        <div class="flex items-center gap-3">
+          <a href="/admin" class="flex items-center gap-2.5 transition hover:opacity-90">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold tracking-tight text-white">Los Laureles</span>
+                <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/30">Admin</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Junta Directiva y Administración</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- Navigation Links (Desktop) -->
+        <nav class="hidden md:flex items-center gap-1">
+          <a
+            href="/admin"
+            class={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              activeSection === 'comunicados'
+                ? 'bg-slate-800 text-emerald-400 border border-slate-700'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <span class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+              Comunicados
+            </span>
+          </a>
+
+          <a
+            href="/admin/mercado"
+            class={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              activeSection === 'mercado'
+                ? 'bg-slate-800 text-emerald-400 border border-slate-700'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+            }`}
+          >
+            <span class="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              Mercado Laureles
+            </span>
+          </a>
+        </nav>
+
+        <!-- Right Side: Public Portal Link & Logout -->
+        <div class="flex items-center gap-3">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            title="Abrir portal de vecinos en nueva pestaña"
+          >
+            <span>Ver Portal Público</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+
+          <button
+            type="button"
+            id="admin-logout-btn"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/90 hover:bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Bar -->
+      <div class="flex md:hidden border-t border-slate-800 bg-slate-950 px-4 py-2 gap-2 overflow-x-auto">
+        <a
+          href="/admin"
+          class={`rounded-md px-3 py-1.5 text-xs font-medium shrink-0 ${
+            activeSection === 'comunicados' ? 'bg-emerald-600 text-white' : 'text-slate-300'
+          }`}
+        >
+          Comunicados
+        </a>
+        <a
+          href="/admin/mercado"
+          class={`rounded-md px-3 py-1.5 text-xs font-medium shrink-0 ${
+            activeSection === 'mercado' ? 'bg-emerald-600 text-white' : 'text-slate-300'
+          }`}
+        >
+          Mercado Laureles
+        </a>
+        <a
+          href="/"
+          target="_blank"
+          class="rounded-md px-3 py-1.5 text-xs font-medium shrink-0 text-slate-400 hover:text-white"
+        >
+          Ver Portal ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 pb-16">
+      <slot />
+    </main>
+
+    <!-- Admin Footer -->
+    <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <p>© 2026 Urbanización Los Laureles — Panel Administrativo Oficial</p>
+        <p class="text-slate-400">Padrón: 52 Inmuebles Residenciales • 5 Manzanas (A-E)</p>
+      </div>
+    </footer>
+
+    <!-- Logout Handler Script -->
+    <script>
+      const logoutBtn = document.getElementById('admin-logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/admin/logout', { method: 'POST' });
+            if (res.ok || res.status < 500) {
+              window.location.href = '/admin/login';
+            }
+          } catch {
+            window.location.href = '/admin/login';
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
